@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VulnScope console</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F4E04D'/%3E%3Cpath d='M8 12h16M8 18h10' stroke='%230F2230' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+</head>
+<body class="console">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="VulnScope home"><span class="mark" aria-hidden="true"></span>VulnScope</a>
+  <nav class="tabs" role="tablist" aria-label="Console sections" data-i18n-attr="aria-label">
+    <button role="tab" id="tab-scan" aria-controls="view-scan" aria-selected="true" data-view="scan" data-i18n>Scan a project</button>
+    <button role="tab" id="tab-registry" aria-controls="view-registry" aria-selected="false" data-view="registry" data-i18n>Registry</button>
+    <button role="tab" id="tab-lifecycle" aria-controls="view-lifecycle" aria-selected="false" data-view="lifecycle" data-i18n>Lifecycle forecast</button>
+  </nav>
+    <div class="prefs">
+    <div class="seg" role="group" aria-label="Language" data-i18n-attr="aria-label">
+      <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+      <button type="button" data-lang="es" aria-pressed="false" lang="es">ES</button>
+    </div>
+    <select id="theme-select" aria-label="Color mode" data-i18n-attr="aria-label">
+      <option value="auto" data-i18n>Auto</option><option value="light" data-i18n>Light</option><option value="dark" data-i18n>Dark</option>
+      <option value="contrast" data-i18n>High contrast</option><option value="ocean" data-i18n>Ocean</option><option value="sand" data-i18n>Sand</option>
+    </select>
+  </div>
+  <div class="session">
+    <span id="who" class="muted" hidden></span>
+    <button id="btn-login" class="btn btn-small btn-ghost" type="button" data-i18n>Sign in</button>
+    <button id="btn-logout" class="btn btn-small btn-ghost" type="button" data-i18n hidden>Sign out</button>
+  </div>
+</header>
+
+<div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+<main id="main" class="wrap">
+  <!-- ============================ SCAN ============================ -->
+  <section id="view-scan" role="tabpanel" aria-labelledby="tab-scan">
+    <div class="panel-intro">
+      <h1 data-i18n>Scan a project</h1>
+      <p data-i18n>Upload a compressed project and get findings with file and line, a risk estimate and fixes. The archive is read in memory and never executed.</p>
+    </div>
+    <form id="scan-form" class="dropform" novalidate>
+      <label id="drop" class="drop" for="file">
+        <input id="file" type="file" accept=".zip,.tar,.gz,.tgz,.bz2,.tbz2,.xz,.txz">
+        <strong id="drop-title">Drop a project archive here, or choose a file</strong>
+        <span id="drop-sub" class="muted">.zip, .tar, .tar.gz, .tar.bz2 or .tar.xz — up to 25 MB</span>
+      </label>
+      <div class="row">
+        <button id="btn-scan" class="btn btn-primary" type="submit" disabled data-i18n>Analyze project</button>
+        <label class="check"><input id="use-ai" type="checkbox"> <span data-i18n>Add an AI remediation plan after the scan</span></label>
+      </div>
+      <p class="fine" data-i18n>AI features send a few redacted lines around each finding to a public AI service. Secrets are masked first. Leave this off for private code.</p>
+    </form>
+    <div id="busy" class="busy" hidden><span class="spinner" aria-hidden="true"></span><span id="busy-text">Scanning…</span></div>
+
+    <div id="results" hidden>
+      <div class="summary">
+        <div class="risk">
+          <div class="risk-top"><h2 data-i18n>Attack-path risk</h2><span id="risk-level" class="pill"></span></div>
+          <div class="risk-score"><span id="risk-score">0</span><span class="muted">/ 100</span></div>
+          <div class="meter" role="img" id="risk-meter"><span id="risk-bar"></span></div>
+          <p id="risk-explain" class="muted"></p>
+        </div>
+        <div class="counts" id="counts"></div>
+      </div>
+
+      <div class="block-sm">
+        <h2 data-i18n>Most likely route to compromise</h2>
+        <ol id="path" class="path"></ol>
+        <details class="matrix-wrap"><summary data-i18n>Show the transition matrix behind this estimate</summary>
+          <div class="table-scroll"><table id="risk-matrix" class="matrix"></table></div>
+        </details>
+      </div>
+
+      <div id="ai-plan" class="aibox" hidden>
+        <div class="aibox-head"><h2 data-i18n>Remediation plan</h2><span id="ai-plan-engine" class="pill"></span></div>
+        <pre id="ai-plan-text" class="prose"></pre>
+      </div>
+
+      <div class="block-sm">
+        <div class="list-head">
+          <h2><span data-i18n>Findings</span> <span id="findings-count" class="muted"></span></h2>
+          <div class="list-tools">
+            <div id="sev-filter" class="chips" role="group" aria-label="Filter by severity"></div>
+            <input id="text-filter" type="search" placeholder="Filter by file or rule" aria-label="Filter findings" data-i18n-attr="placeholder aria-label">
+          </div>
+        </div>
+        <div class="row">
+          <button id="btn-register-all" class="btn btn-small" type="button" data-i18n>Add all to registry</button>
+          <button id="btn-export" class="btn btn-small btn-ghost" type="button" data-i18n>Download report (JSON)</button>
+          <button id="btn-ai-plan" class="btn btn-small btn-ghost" type="button" data-i18n>Get AI remediation plan</button>
+        </div>
+        <ul id="findings" class="findings"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== REGISTRY =========================== -->
+  <section id="view-registry" role="tabpanel" aria-labelledby="tab-registry" hidden>
+    <div class="panel-intro">
+      <h1 data-i18n>Vulnerability registry</h1>
+      <p data-i18n>Everyone can read the log. Signing in is required to add, change or delete records. An identical record cannot be created twice.</p>
+    </div>
+    <form id="vuln-form" class="grid-form" novalidate>
+      <label><span data-i18n>Title</span><input name="titulo" maxlength="200" required autocomplete="off"></label>
+      <label><span data-i18n>Identifier</span><input name="cve_codigo" placeholder="CVE-2024-12345 or CWE-89" data-i18n-attr="placeholder" required autocomplete="off"></label>
+      <label><span data-i18n>Severity</span><select name="severidad"><option value="baja" data-i18n>Low</option><option value="media" data-i18n>Medium</option><option value="alta" selected data-i18n>High</option><option value="critica" data-i18n>Critical</option></select></label>
+      <label><span data-i18n>Status</span><select name="estado"><option value="abierta" data-i18n>Open</option><option value="en_revision" data-i18n>In review</option><option value="mitigada" data-i18n>Mitigated</option><option value="cerrada" data-i18n>Closed</option></select></label>
+      <label><span data-i18n>CVSS score (0–10)</span><input name="puntaje_cvss" type="number" min="0" max="10" step="0.1" value="7.5" required></label>
+      <div class="form-actions"><button class="btn btn-primary" type="submit" data-i18n>Create record</button></div>
+    </form>
+    <div id="dup-warning" class="warn" role="alert" hidden></div>
+    <div class="table-scroll">
+      <table id="registry-table" class="data">
+        <thead><tr><th>#</th><th data-i18n>Title</th><th data-i18n>Identifier</th><th data-i18n>Severity</th><th data-i18n>Status</th><th data-i18n>CVSS</th><th><span class="sr" data-i18n>Actions</span></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p id="registry-empty" class="muted" data-i18n hidden>The registry is empty. Create a record above or scan a project and add its findings.</p>
+  </section>
+
+  <!-- =========================== LIFECYCLE =========================== -->
+  <section id="view-lifecycle" role="tabpanel" aria-labelledby="tab-lifecycle" hidden>
+    <div class="panel-intro">
+      <h1 data-i18n>Lifecycle forecast</h1>
+      <p data-i18n>A Markov chain learns how vulnerabilities move between statuses from the registry history and predicts what happens next.</p>
+    </div>
+    <p id="lc-source" class="muted"></p>
+    <div class="table-scroll"><table id="lc-matrix" class="matrix"></table></div>
+    <div id="lc-cards" class="lc-cards"></div>
+    <div class="block-sm">
+      <h2 data-i18n>Simulate a vulnerability</h2>
+      <div class="row">
+        <label class="inline"><span data-i18n>Start from</span> <select id="lc-from"><option value="abierta" data-i18n>Open</option><option value="en_revision" data-i18n>In review</option><option value="mitigada" data-i18n>Mitigated</option></select></label>
+        <button id="btn-sim" class="btn btn-small" type="button" data-i18n>Run simulation</button>
+      </div>
+      <ol id="lc-sim" class="path"></ol>
+    </div>
+  </section>
+</main>
+
+<!-- ============================ dialogs ============================ -->
+<dialog id="dlg-login" aria-labelledby="login-title">
+  <form id="login-form" method="dialog" novalidate>
+    <h2 id="login-title" data-i18n>Sign in</h2>
+    <p class="muted" data-i18n>Needed to change the registry. Scanning and AI help stay open.</p>
+    <label><span data-i18n>Username</span><input name="username" autocomplete="username" required></label>
+    <label><span data-i18n>Password</span><input name="clave" type="password" autocomplete="current-password" required></label>
+    <p id="login-error" class="error" role="alert" hidden></p>
+    <div class="row end"><button type="button" class="btn btn-ghost" id="login-cancel" data-i18n>Cancel</button><button class="btn btn-primary" type="submit" data-i18n>Sign in</button></div>
+  </form>
+</dialog>
+<dialog id="dlg-playbook" aria-labelledby="pb-title">
+  <div class="dlg-body">
+    <h2 id="pb-title">Mitigation playbook</h2>
+    <p class="badge-sim" data-i18n>Simulation only — review before running anything. Identifiers are placeholders.</p>
+    <p id="pb-strategy"></p>
+    <div id="pb-steps"></div>
+    <div class="row end"><button class="btn btn-primary" id="pb-close" type="button" data-i18n>Close</button></div>
+  </div>
+</dialog>
+
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>
