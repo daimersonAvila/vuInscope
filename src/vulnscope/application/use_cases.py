@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+from vulnscope.domain.gate import evaluate_gate
+
 from ..domain import risk as risk_model
 from ..domain import scanner
 from ..domain.errors import AIUnavailableError, AuthError, DuplicateVulnerabilityError, NotFoundError, ValidationError
@@ -88,6 +90,7 @@ class ScanService:
         contents = self.reader.read(data)  # raises ArchiveError
         result = scanner.scan(contents)
         result["risk"] = risk_model.build_risk_model(result["findings"])
+        result["gate"] = evaluate_gate(result["stats"]["by_severity"])
         return result
 
     @staticmethod

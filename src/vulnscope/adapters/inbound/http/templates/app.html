@@ -67,6 +67,14 @@
     <div id="busy" class="busy" hidden><span class="spinner" aria-hidden="true"></span><span id="busy-text">Scanning…</span></div>
 
     <div id="results" hidden>
+            <div id="gate" class="gate" role="status" hidden>
+        <div id="gate-badge" class="gate-badge" aria-hidden="true"></div>
+        <div>
+          <h2 id="gate-title"></h2>
+          <p id="gate-detail" class="muted"></p>
+          <p class="fine" data-i18n>Fails with any critical or more than 2 high findings. Warns with any high or more than 5 medium.</p>
+        </div>
+      </div>
       <div class="summary">
         <div class="risk">
           <div class="risk-top"><h2 data-i18n>Attack-path risk</h2><span id="risk-level" class="pill"></span></div>
