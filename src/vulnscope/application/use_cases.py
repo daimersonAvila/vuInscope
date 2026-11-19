@@ -193,36 +193,37 @@ class AIAdvisor:
 
 
 # ---------------------------------------------------------------- Markov lifecycle
-##EXAMPLE_SEQUENCES = [
-##   ["abierta", "en_revision", "mitigada", "cerrada"], ["abierta", "en_revision", "cerrada"],
-##    ["abierta", "en_revision", "mitigada", "cerrada"], ["abierta", "abierta", "en_revision", "mitigada"],
-##   ["abierta", "en_revision", "en_revision", "mitigada", "cerrada"], ["abierta", "en_revision", "cerrada"],
-##    ["abierta", "en_revision", "mitigada", "cerrada"], ["abierta", "abierta", "en_revision", "cerrada"],
-##]
-##class LifecycleService:
-##    def __init__(self, history: StateHistoryRepository):
-##        self.history = history
-##
-##    def forecast(self, simulate_from: str = "abierta", seed: Optional[int] = None) -> dict:
-##        if simulate_from not in STATES:
-##            raise ValidationError("from must be one of: " + ", ".join(STATES))
-##       seqs = self.history.sequences()
-##        chain = MarkovChain(STATES)
-##        transitions = chain.train(seqs)
-##        source = "history"
-##        if transitions < 10:  # too little real data: blend in a documented prior
-##            transitions = chain.train(seqs + EXAMPLE_SEQUENCES)
-##            source = "history+prior" if seqs else "prior"
-##        # a closed vulnerability stays closed (absorbing) so expected-time maths is well defined
-##        chain.matrix[chain.index["cerrada"]] = [0.0, 0.0, 0.0, 1.0]
-##        steps = {s: chain.expected_steps_to(s, "cerrada") for s in STATES}
-##        return {
-##            "states": STATES, "matrix": [[round(v, 4) for v in row] for row in chain.matrix],
-##            "next_most_likely": {s: chain.predict_next(s) for s in STATES},
-##            "expected_steps_to_closed": {s: (round(v, 2) if v is not None else None) for s, v in steps.items()},
-##            "simulation": chain.simulate(simulate_from, 6, seed), "data_source": source,
-##            "transitions_observed": transitions,
-##        }
+EXAMPLE_SEQUENCES = [
+    ["abierta", "en_revision", "mitigada", "cerrada"], ["abierta", "en_revision", "cerrada"],
+    ["abierta", "en_revision", "mitigada", "cerrada"], ["abierta", "abierta", "en_revision", "mitigada"],
+    ["abierta", "en_revision", "en_revision", "mitigada", "cerrada"], ["abierta", "en_revision", "cerrada"],
+    ["abierta", "en_revision", "mitigada", "cerrada"], ["abierta", "abierta", "en_revision", "cerrada"],
+]
+
+class LifecycleService:
+    def __init__(self, history: StateHistoryRepository):
+        self.history = history
+
+    def forecast(self, simulate_from: str = "abierta", seed: Optional[int] = None) -> dict:
+        if simulate_from not in STATES:
+            raise ValidationError("from must be one of: " + ", ".join(STATES))
+        seqs = self.history.sequences()
+        chain = MarkovChain(STATES)
+        transitions = chain.train(seqs)
+        source = "history"
+        if transitions < 10:  # too little real data: blend in a documented prior
+            transitions = chain.train(seqs + EXAMPLE_SEQUENCES)
+            source = "history+prior" if seqs else "prior"
+        # a closed vulnerability stays closed (absorbing) so expected-time maths is well defined
+        chain.matrix[chain.index["cerrada"]] = [0.0, 0.0, 0.0, 1.0]
+        steps = {s: chain.expected_steps_to(s, "cerrada") for s in STATES}
+        return {
+            "states": STATES, "matrix": [[round(v, 4) for v in row] for row in chain.matrix],
+            "next_most_likely": {s: chain.predict_next(s) for s in STATES},
+            "expected_steps_to_closed": {s: (round(v, 2) if v is not None else None) for s, v in steps.items()},
+            "simulation": chain.simulate(simulate_from, 6, seed), "data_source": source,
+            "transitions_observed": transitions,
+        }
 
 
 # ---------------------------------------------------------------- auth
