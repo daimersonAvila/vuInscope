@@ -20,7 +20,7 @@
     "{n} {sev} (limit {max})": "{n} {sev} (límite {max})",
     "No condition exceeded the limits.": "Ninguna condición superó los límites.",
     "Fails with any critical or more than 2 high findings. Warns with any high or more than 5 medium.": "Reprueba con cualquier hallazgo crítico o más de 2 altos. Advierte con cualquier alto o más de 5 medios.",
-    "37 checks cover hard-coded secrets, SQL and command injection, unsafe deserialisation, weak cryptography, XSS sinks, debug flags and risky cloud or container settings. Every finding points to a file and line.": "37 controles cubren secretos escritos en el código, inyección SQL y de comandos, deserialización insegura, criptografía débil, puntos de XSS, banderas de debug y configuraciones riesgosas de nube o contenedores. Cada hallazgo señala un archivo y una línea.",
+        "46 checks cover hard-coded secrets, SQL and command injection, unsafe deserialisation, weak cryptography, XSS sinks, debug flags and risky cloud or container settings. Every finding points to a file and line.": "46 controles cubren secretos escritos en el código, inyección SQL y de comandos, deserialización insegura, criptografía débil, puntos de XSS, banderas de debug y configuraciones riesgosas de nube o contenedores. Cada hallazgo señala un archivo y una línea.",
     //"A Markov chain learns how vulnerabilities move between statuses from the registry history and predicts what happens next.": "Una cadena de Markov aprende cómo cambian de estado las vulnerabilidades a partir del historial del registro y predice qué sigue.",
     "A Markov chain turns your findings into an attack path — from first contact to full compromise — and gives a 0–100 risk score with the most probable route highlighted.": "Una cadena de Markov convierte tus hallazgos en una ruta de ataque —del primer contacto al compromiso total— y da un puntaje de riesgo de 0 a 100 con la ruta más probable resaltada.",
     "AI features send a few redacted lines around each finding to a public AI service. Secrets are masked first. Leave this off for private code.": "Las funciones de IA envían unas pocas líneas enmascaradas alrededor de cada hallazgo a un servicio público de IA. Los secretos se ocultan antes. Déjalo desactivado para código privado.",
@@ -222,6 +222,8 @@
     "cve_codigo must look like CVE-YYYY-NNNN (e.g. CVE-2024-12345) or CWE-NNN": "El identificador debe verse como CVE-AAAA-NNNN (p. ej. CVE-2024-12345) o CWE-NNN",
     "puntaje_cvss must be a number between 0 and 10": "El puntaje CVSS debe ser un número entre 0 y 10",
     "Send a JSON object": "Envía un objeto JSON",
+        "Whether it is ready to ship": "Si está listo para entregarse",
+    "A Quality Gate gives a clear Passed, Passed with warnings or Failed verdict based on the severity of the findings, so you know at a glance if the project meets the bar.": "Un Quality Gate da un veredicto claro de Aprobado, Aprobado con advertencias o Reprobado según la severidad de los hallazgos, para que sepas de un vistazo si el proyecto cumple.",
   };
 
   const listeners = [];
