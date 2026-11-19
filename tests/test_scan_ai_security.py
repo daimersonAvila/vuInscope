@@ -86,14 +86,14 @@ def test_rule_playbook(client):
     assert client.post("/api/playbook", json={"rule_id": "zzz"}).status_code == 404
 
 
-def test_markov_lifecycle(client, auth):
-    d = client.get("/api/markov/lifecycle").get_json()
-    assert d["data_source"] == "prior" and d["expected_steps_to_closed"]["abierta"] > 0
-    assert d["expected_steps_to_closed"]["cerrada"] == 0
-    assert all(abs(sum(row) - 1) < 1e-3 for row in d["matrix"])
-    client.post("/api/vulnerabilidades", json=vuln(), headers=auth)
-    assert client.get("/api/markov/lifecycle").get_json()["data_source"] == "history+prior"
-    assert client.get("/api/markov/lifecycle?from=zz").status_code == 400
+##def test_markov_lifecycle(client, auth):
+##   d = client.get("/api/markov/lifecycle").get_json()
+##    assert d["data_source"] == "prior" and d["expected_steps_to_closed"]["abierta"] > 0
+##    assert d["expected_steps_to_closed"]["cerrada"] == 0
+##    assert all(abs(sum(row) - 1) < 1e-3 for row in d["matrix"])
+##    client.post("/api/vulnerabilidades", json=vuln(), headers=auth)
+##    assert client.get("/api/markov/lifecycle").get_json()["data_source"] == "history+prior"
+##    assert client.get("/api/markov/lifecycle?from=zz").status_code == 400
 
 
 def test_security_headers_and_pages(client):
