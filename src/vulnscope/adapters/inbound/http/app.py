@@ -265,9 +265,9 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         return jsonify(c.advisor.summarize_scan(data, norm_lang(data.get("lang"))))
 
     # ----------------------------------------------------------- Markov
-    @app.get("/api/markov/lifecycle")
-    @limit("read", 60, 60)
-    def lifecycle():
-        return jsonify(c.lifecycle.forecast(request.args.get("from", "abierta")))
+    ##@app.get("/api/markov/lifecycle")
+    ##@limit("read", 60, 60)
+    ##def lifecycle():
+    ##   return jsonify(c.lifecycle.forecast(request.args.get("from", "abierta")))
 
     return app

@@ -129,14 +129,14 @@
   }
 
   // ------------------------------------------------------------------ tabs
-  const views = ['scan', 'registry', 'lifecycle'];
+  const views = ['scan', 'registry' ];//'lifecycle'
   function showView(name) {
     views.forEach((v) => {
       $(`#view-${v}`).hidden = v !== name;
       $(`#tab-${v}`).setAttribute('aria-selected', String(v === name));
     });
     if (name === 'registry') loadRegistry();
-    if (name === 'lifecycle') loadLifecycle();
+    //if (name === 'lifecycle') loadLifecycle();
   }
   document.querySelectorAll('.tabs [data-view]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
 
@@ -355,35 +355,35 @@
   });
 
   // ------------------------------------------------------------------ lifecycle
-  async function loadLifecycle() {
-    try {
-      const d = await api('/api/markov/lifecycle');
-      const src = { history: 'Learned entirely from your registry history.', 'history+prior': 'Learned from your registry history, blended with a built-in prior because there are few observed transitions.', prior: 'Built-in prior only: the registry has no status history yet.' }[d.data_source];
-      $('#lc-source').textContent = `${t(src)} ${t('Transitions observed: {n}.', { n: d.transitions_observed })}`;
-      renderMatrix($('#lc-matrix'), d.states.map((s) => t(ST_LABEL[s])), d.matrix);
-      const cards = $('#lc-cards'); cards.replaceChildren();
-      d.states.filter((s) => s !== 'cerrada').forEach((s) => {
-        const steps = d.expected_steps_to_closed[s];
-        cards.append(h('div', { class: 'lc-card' }, h('span', { class: 'muted' }, t('From {state}', { state: t(ST_LABEL[s]) })),
-          h('b', {}, steps === null ? t('Never closes') : t('{n} steps', { n: steps })),
-          h('span', {}, t('to reach Closed. Most likely next: {next}.', { next: t(ST_LABEL[d.next_most_likely[s]]) }))));
-      });
-      renderSim(d.simulation);
-    } catch (ex) { notice(ex.message, true); }
-  }
-  function renderSim(seq) {
-    const ol = $('#lc-sim'); ol.replaceChildren();
-    seq.forEach((s, i) => ol.append(h('li', { class: i === seq.length - 1 && s === 'cerrada' ? 'end' : '' }, t(ST_LABEL[s]))));
-  }
-  $('#btn-sim').addEventListener('click', async () => {
-    try { renderSim((await api(`/api/markov/lifecycle?from=${encodeURIComponent($('#lc-from').value)}`)).simulation); }
-    catch (ex) { notice(ex.message, true); }
-  });
+  //async function loadLifecycle() {
+    //try {
+      //const d = await api('/api/markov/lifecycle');
+      //const src = { history: 'Learned entirely from your registry history.', 'history+prior': 'Learned from your registry history, blended with a built-in prior because there are few observed transitions.', prior: 'Built-in prior only: the registry has no status history yet.' }[d.data_source];
+      //$('#lc-source').textContent = `${t(src)} ${t('Transitions observed: {n}.', { n: d.transitions_observed })}`;
+      //renderMatrix($('#lc-matrix'), d.states.map((s) => t(ST_LABEL[s])), d.matrix);
+      //const cards = $('#lc-cards'); cards.replaceChildren();
+      //d.states.filter((s) => s !== 'cerrada').forEach((s) => {
+      //  const steps = d.expected_steps_to_closed[s];
+      //  cards.append(h('div', { class: 'lc-card' }, h('span', { class: 'muted' }, t('From {state}', { state: t(ST_LABEL[s]) })),
+       //   h('b', {}, steps === null ? t('Never closes') : t('{n} steps', { n: steps })),
+      //    h('span', {}, t('to reach Closed. Most likely next: {next}.', { next: t(ST_LABEL[d.next_most_likely[s]]) }))));
+     // });
+    //  renderSim(d.simulation);
+   // } catch (ex) { notice(ex.message, true); }
+  //}
+  //function renderSim(seq) {
+  //  const ol = $('#lc-sim'); ol.replaceChildren();
+  //  seq.forEach((s, i) => ol.append(h('li', { class: i === seq.length - 1 && s === 'cerrada' ? 'end' : '' }, t(ST_LABEL[s]))));
+  //}
+  //$('#btn-sim').addEventListener('click', async () => {
+  //  try { renderSim((await api(`/api/markov/lifecycle?from=${encodeURIComponent($('#lc-from').value)}`)).simulation); }
+  //  catch (ex) { notice(ex.message, true); }
+  //});
 
   VS.onLang(async () => {
     renderDrop(); updateSession();
     if (scan) { await loadRuleText(); renderResults(false); }
-    if (!$('#view-lifecycle').hidden) loadLifecycle();
+    //if (!$('#view-lifecycle').hidden) loadLifecycle();
   });
   renderDrop();
   updateSession();

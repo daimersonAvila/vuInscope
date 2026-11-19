@@ -25,7 +25,6 @@
   <nav class="tabs" role="tablist" aria-label="Console sections" data-i18n-attr="aria-label">
     <button role="tab" id="tab-scan" aria-controls="view-scan" aria-selected="true" data-view="scan" data-i18n>Scan a project</button>
     <button role="tab" id="tab-registry" aria-controls="view-registry" aria-selected="false" data-view="registry" data-i18n>Registry</button>
-    <button role="tab" id="tab-lifecycle" aria-controls="view-lifecycle" aria-selected="false" data-view="lifecycle" data-i18n>Lifecycle forecast</button>
   </nav>
     <div class="prefs">
     <div class="seg" role="group" aria-label="Language" data-i18n-attr="aria-label">
@@ -133,24 +132,6 @@
     <p id="registry-empty" class="muted" data-i18n hidden>The registry is empty. Create a record above or scan a project and add its findings.</p>
   </section>
 
-  <!-- =========================== LIFECYCLE =========================== -->
-  <section id="view-lifecycle" role="tabpanel" aria-labelledby="tab-lifecycle" hidden>
-    <div class="panel-intro">
-      <h1 data-i18n>Lifecycle forecast</h1>
-      <p data-i18n>A Markov chain learns how vulnerabilities move between statuses from the registry history and predicts what happens next.</p>
-    </div>
-    <p id="lc-source" class="muted"></p>
-    <div class="table-scroll"><table id="lc-matrix" class="matrix"></table></div>
-    <div id="lc-cards" class="lc-cards"></div>
-    <div class="block-sm">
-      <h2 data-i18n>Simulate a vulnerability</h2>
-      <div class="row">
-        <label class="inline"><span data-i18n>Start from</span> <select id="lc-from"><option value="abierta" data-i18n>Open</option><option value="en_revision" data-i18n>In review</option><option value="mitigada" data-i18n>Mitigated</option></select></label>
-        <button id="btn-sim" class="btn btn-small" type="button" data-i18n>Run simulation</button>
-      </div>
-      <ol id="lc-sim" class="path"></ol>
-    </div>
-  </section>
 </main>
 
 <!-- ============================ dialogs ============================ -->

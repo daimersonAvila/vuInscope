@@ -2,7 +2,7 @@ services:
   vulnscope:
     build: .
     env_file: .env
-    ports: ["127.0.0.1:8000:8000"]   # publish only to the local reverse proxy (TLS terminates there)
+    ports: ["127.0.0.1:8000:8000"]  
     volumes: ["vulnscope-data:/data"]
     read_only: true
     tmpfs: ["/tmp"]
