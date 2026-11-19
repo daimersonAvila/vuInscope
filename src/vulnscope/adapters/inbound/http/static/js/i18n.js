@@ -84,7 +84,7 @@
     "Password": "Contraseña",
     "Primary": "Principal",
     "Rate limits on every endpoint and a lockout after repeated failed logins": "Límites de tasa en cada endpoint y bloqueo tras varios inicios de sesión fallidos",
-    //"Register findings in the vulnerability log. A second Markov chain learns from your status changes and forecasts how many steps remain until each one is closed. Exact duplicates are refused with a clear notice.": "Registra los hallazgos en el log de vulnerabilidades. Una segunda cadena de Markov aprende de tus cambios de estado y pronostica cuántos pasos faltan para cerrar cada una. Los duplicados exactos se rechazan con un aviso claro.",
+    "Register findings in the vulnerability log. A second Markov chain learns from your status changes and forecasts how many steps remain until each one is closed. Exact duplicates are refused with a clear notice.": "Registra los hallazgos en el log de vulnerabilidades. Una segunda cadena de Markov aprende de tus cambios de estado y pronostica cuántos pasos faltan para cerrar cada una. Los duplicados exactos se rechazan con un aviso claro.",
     "Registry": "Registro",
     "Remediation plan": "Plan de remediación",
     "Rules read each text file line by line. Secrets are masked the moment they are found, so they never appear in results or reach the AI.": "Las reglas leen cada archivo de texto línea por línea. Los secretos se enmascaran al encontrarlos, así que nunca aparecen en los resultados ni llegan a la IA.",

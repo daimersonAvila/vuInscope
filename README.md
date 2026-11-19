@@ -25,8 +25,9 @@ Evolución del proyecto del Grupo 4 — *Cloud Computing para el desarrollo de s
 | Funcionalidad | Dónde está |
 |---|---|
 | Landing que explica el proyecto + botón "Launch console" | `/` → `/app` |
-| Carga de proyectos comprimidos (`.zip`, `.tar`, `.tar.gz`, `.tar.bz2`, `.tar.xz`) | `adapters/outbound/archive_reader.py` |
-| Detección de vulnerabilidades (37 reglas, con archivo y línea) | `domain/rules.py`, `domain/scanner.py` |
+| Carga de proyectos comprimidos (`.zip`, `.tar`, `.tar.gz`, `.tar.bz2`, `.tar.xz`) **o de un solo archivo de código** (`main.c`, `app.py`…) | `adapters/outbound/archive_reader.py` |
+| Detección de vulnerabilidades (50 reglas, con archivo y línea), incluidas 13 reglas de **C/C++** (`gets`, `strcpy`, `sprintf`, `printf(var)`, `system`…) | `domain/rules.py`, `domain/scanner.py` |
+| **Revisión de código con IA**: el modelo lee los archivos y reporta vulnerabilidades por su cuenta (cualquier lenguaje), validando su salida | `application/ai_review.py` |
 | Cómo solucionarlo (fix + ejemplo por hallazgo) + asistente de IA | `application/use_cases.py` (`AIAdvisor`) |
 | IA con API pública, sin clave (Pollinations.AI, configurable) | `adapters/outbound/ai_http.py` |
 | Cadenas de Markov: riesgo de ataque y ciclo de vida | `domain/markov.py`, `domain/risk.py`, `LifecycleService` |
@@ -54,7 +55,7 @@ Comandos opcionales:
 
 ```bash
 python scripts/seed.py     # cargar datos de ejemplo
-python -m pytest           # ejecutar las 41 pruebas
+python -m pytest           # ejecutar las 54 pruebas
 ```
 
 ---
@@ -145,7 +146,8 @@ El idioma cambia los textos de la interfaz, los nombres y soluciones de cada reg
 ## Limitaciones
 
 - **IA pública:** la llamada real a `text.pollinations.ai` no pudo probarse en el entorno de desarrollo por falta de salida a Internet. Se probó con un proveedor simulado y con el *fallback* local. Verifica el endpoint y modelo vigentes y ajusta `AI_URL` / `AI_MODEL`. Si el servicio falla, la app responde con guía integrada y no se rompe.
-- **Privacidad:** el código enviado a un servicio público sale de tu control. Solo se envían unas pocas líneas ya enmascaradas, y únicamente tras un clic del usuario.
+- **Privacidad:** el código enviado a un servicio público sale de tu control. La revisión con IA envía el código fuente (con los secretos ya enmascarados) y solo ocurre si marcas la casilla *Analizar el código con IA*. Para código privado déjala desactivada o usa `AI_ENABLED=0`.
+- **Revisión con IA:** revisa como máximo 10 fragmentos (~12 000 caracteres c/u) por análisis, prioriza los archivos con hallazgos previos y tiene un presupuesto de 50 s. Si el servicio no responde, la interfaz lo indica ("la IA no respondió, solo se ejecutaron las reglas integradas") en vez de mostrar ceros sin explicación. Los hallazgos de la IA se validan (línea real, severidad y CWE permitidos), pero pueden ser falsos positivos.
 - **Escalado:** el rate limit y el bloqueo de cuenta viven en memoria (1 worker). Con varios workers o instancias usa Redis o el limitador del proxy.
 - **Usuarios:** hay un único administrador definido por configuración. SQLite es suficiente para un grupo pequeño.
 - **Análisis estático:** se basa en patrones, puede dar falsos positivos o negativos y no sustituye una auditoría.
@@ -154,7 +156,12 @@ El idioma cambia los textos de la interfaz, los nombres y soluciones de cada reg
 
 ## Cambios respecto al proyecto original
 
-**Corregido**
+**Corregido (versión actual)**
+- Analizar un proyecto/archivo `.c` daba todo en cero: el escáner no tenía ninguna regla para C/C++ y la IA solo "explicaba" hallazgos ya existentes (con 0 hallazgos ni siquiera se llamaba). Ahora hay reglas de C/C++ y una revisión real del código con IA; además se aceptan `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx` y archivos sueltos.
+- Los comentarios en C ya no ocultan código real (`*p = x;`, `--i;`, `#define …`).
+- Timeout de gunicorn subido a 120 s por la revisión con IA.
+
+**Corregido (versión inicial)**
 - `SECRET_KEY` y contraseña en texto plano.
 - `debug=True`.
 - Respuesta 401 del login con clave `token`.

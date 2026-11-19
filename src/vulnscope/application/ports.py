@@ -21,12 +21,12 @@ class StateHistoryRepository(Protocol):
 
 
 class ArchiveReader(Protocol):
-    def read(self, data: bytes) -> ArchiveContents: ...           # raises ArchiveError
+    def read(self, data: bytes, filename: Optional[str] = None) -> ArchiveContents: ...  # raises ArchiveError
 
 
 class AIClient(Protocol):
     name: str
-    def complete(self, system: str, user: str) -> str: ...        # raises AIUnavailableError
+    def complete(self, system: str, user: str, max_tokens: int = 900) -> str: ...  # raises AIUnavailableError
 
 
 class Authenticator(Protocol):

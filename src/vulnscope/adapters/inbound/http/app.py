@@ -215,8 +215,9 @@ def create_app(settings: Settings | None = None, container: Container | None = N
             return err(f"File too large. Maximum upload is {settings.max_upload_mb} MB.", 413)
         if not scan_slots.acquire(blocking=False):
             return err("The scanner is busy. Try again in a few seconds.", 503)
+        use_ai = request.form.get("use_ai", "").lower() in ("1", "true", "on", "yes")
         try:
-            result = c.scans.run(data)
+            result = c.scans.run(data, f.filename, use_ai, norm_lang(request.form.get("lang")))
         finally:
             scan_slots.release()
         return jsonify(result)
@@ -245,7 +246,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         data = body()
         if not isinstance(data, dict) or not isinstance(data.get("rule_id"), str):
             return err("rule_id is required", 400)
-        return jsonify(ScanService.playbook_for_rule(data["rule_id"], norm_lang(data.get("lang"))))
+        return jsonify(ScanService.playbook_for_rule(data["rule_id"], norm_lang(data.get("lang")), data))
 
     # ---------------------------------------------------------------- AI
     @app.post("/api/ai/explain")

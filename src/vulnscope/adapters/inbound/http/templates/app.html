@@ -54,15 +54,15 @@
     </div>
     <form id="scan-form" class="dropform" novalidate>
       <label id="drop" class="drop" for="file">
-        <input id="file" type="file" accept=".zip,.tar,.gz,.tgz,.bz2,.tbz2,.xz,.txz">
+        <input id="file" type="file" accept=".zip,.tar,.gz,.tgz,.bz2,.tbz2,.xz,.txz,.c,.h,.cpp,.cc,.cxx,.hpp,.hh,.py,.js,.ts,.java,.php,.go,.rb,.cs,.rs">
         <strong id="drop-title">Drop a project archive here, or choose a file</strong>
-        <span id="drop-sub" class="muted">.zip, .tar, .tar.gz, .tar.bz2 or .tar.xz — up to 25 MB</span>
+        <span id="drop-sub" class="muted">.zip, .tar, .tar.gz, .tar.bz2 or .tar.xz (or a single source file) — up to 25 MB</span>
       </label>
       <div class="row">
         <button id="btn-scan" class="btn btn-primary" type="submit" disabled data-i18n>Analyze project</button>
-        <label class="check"><input id="use-ai" type="checkbox"> <span data-i18n>Add an AI remediation plan after the scan</span></label>
+        <label class="check"><input id="use-ai" type="checkbox"> <span data-i18n>Analyze the code with AI and add a remediation plan</span></label>
       </div>
-      <p class="fine" data-i18n>AI features send a few redacted lines around each finding to a public AI service. Secrets are masked first. Leave this off for private code.</p>
+      <p class="fine" data-i18n>AI features send the source code to a public AI service so it can review it (secrets are masked first). Leave this off for private code.</p>
     </form>
     <div id="busy" class="busy" hidden><span class="spinner" aria-hidden="true"></span><span id="busy-text">Scanning…</span></div>
 
@@ -92,6 +92,8 @@
           <div class="table-scroll"><table id="risk-matrix" class="matrix"></table></div>
         </details>
       </div>
+
+      <p id="ai-status" class="aibox fine" role="status" hidden></p>
 
       <div id="ai-plan" class="aibox" hidden>
         <div class="aibox-head"><h2 data-i18n>Remediation plan</h2><span id="ai-plan-engine" class="pill"></span></div>
