@@ -47,6 +47,15 @@ RULE_TEXT_ES = {
     "FIL002": ("Archivo de clave privada incluido en el proyecto", "Elimina la clave, rótala y móntala en tiempo de ejecución desde un gestor de secretos."),
     "FIL003": ("Archivo de base de datos incluido en el proyecto", "No subas bases de datos: pueden contener datos de usuarios. Genéralas al desplegar o con scripts de carga."),
     "FIL004": ("Entorno virtual / carpeta de dependencias incluida", "Excluye entornos virtuales y dependencias del repositorio (.gitignore) e instálalas desde requirements.txt."),
+        "JAV001": ("Consulta SQL armada con concatenación de texto (Java)", "Usa PreparedStatement con marcadores ? y setString/setInt en lugar de concatenar valores dentro del SQL."),
+    "JAV002": ("Comando del sistema armado con datos dinámicos (Java)", "Pasa el comando y sus argumentos como un String[] fijo (nunca un solo texto concatenado) y valida cada argumento contra una lista permitida."),
+    "JAV003": ("Deserialización insegura (ObjectInputStream)", "Nunca deserialices datos no confiables con la serialización de Java. Usa JSON, o define un ObjectInputFilter que solo permita las clases esperadas."),
+    "JAV004": ("Valor aleatorio predecible usado para un secreto (Java)", "Usa java.security.SecureRandom para tokens, contraseñas, ids de sesión y claves."),
+    "JAV005": ("Verificación de certificado u host TLS desactivada (Java)", "Deja activa la verificación de certificado y de nombre de host, y agrega tu CA al almacén de confianza en lugar de confiar en todo."),
+    "JAV006": ("El analizador XML podría permitir entidades externas (XXE)", "Desactiva los DTD y las entidades externas en la fábrica, por ejemplo con setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true) y disallow-doctype-decl."),
+    "JAV007": ("Traza de error impresa en consola (fuga de información)", "Registra el error con un logger en el nivel adecuado y muestra al usuario un mensaje genérico."),
+    "JAV008": ("Bloque catch demasiado amplio o vacío", "Captura las excepciones específicas que sabes manejar y nunca ocultes un error en silencio: regístralo o vuelve a lanzarlo."),
+    "JAV009": ("Contraseña dentro de la URL de conexión JDBC", "Quita la contraseña de la URL y carga las credenciales desde variables de entorno o un gestor de secretos."),
 }
 
 PLAYBOOK_ES = {

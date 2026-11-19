@@ -383,6 +383,17 @@
   VS.onLang(async () => {
     renderDrop(); updateSession();
     if (scan) { await loadRuleText(); renderResults(false); }
+        const g = scan.gate, gateEl = $('#gate');
+    if (g) {
+      const GATE_TITLE = { passed: 'Quality Gate: Passed', warning: 'Quality Gate: Passed with warnings', failed: 'Quality Gate: Failed' };
+      const GATE_ICON = { passed: '✔', warning: '!', failed: '✖' };
+      gateEl.hidden = false; gateEl.className = `gate gate-${g.status}`;
+      $('#gate-badge').textContent = GATE_ICON[g.status];
+      $('#gate-title').textContent = t(GATE_TITLE[g.status]);
+      $('#gate-detail').textContent = g.conditions.length
+        ? g.conditions.map((c) => t('{n} {sev} (limit {max})', { n: c.count, sev: t(SEV_LABEL[c.severity]).toLowerCase(), max: c.limit })).join(' · ')
+        : t('No condition exceeded the limits.');
+    } else { gateEl.hidden = true; }
     //if (!$('#view-lifecycle').hidden) loadLifecycle();
   });
   renderDrop();

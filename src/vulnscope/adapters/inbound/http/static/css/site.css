@@ -252,6 +252,17 @@ th { font-weight: 700; }
 .risk-score .muted { font: 1rem var(--sans); margin-left: .4rem; }
 .meter { height: 10px; background: var(--paper-2); border-radius: 5px; overflow: hidden; }
 .meter span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .8s ease; }
+/* Quality Gate */
+.gate { display: flex; align-items: center; gap: 1rem; margin: 2rem 0 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-left: 8px solid var(--rule); border-radius: var(--radius); background: var(--code-bg); }
+.gate h2 { margin: 0; font-size: 1.3rem; }
+.gate p { margin: .2rem 0 0; }
+.gate-badge { flex: none; width: 2.8rem; height: 2.8rem; border-radius: 50%; display: grid; place-items: center; font: 700 1.5rem var(--sans); color: var(--paper); }
+.gate-passed { border-left-color: var(--low); }
+.gate-passed .gate-badge { background: var(--low); }
+.gate-warning { border-left-color: var(--med); }
+.gate-warning .gate-badge { background: var(--med); }
+.gate-failed { border-left-color: var(--crit); }
+.gate-failed .gate-badge { background: var(--crit); }
 .counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
 .count { border-top: 4px solid var(--rule); padding: .6rem 0; }
 .count b { display: block; font: 700 2rem/1 var(--serif); }
