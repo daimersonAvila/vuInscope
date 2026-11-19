@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from vulnscope.domain.gate import evaluate_gate
+from ..domain.gate import evaluate_gate
 
 from ..domain import risk as risk_model
 from ..domain import scanner
