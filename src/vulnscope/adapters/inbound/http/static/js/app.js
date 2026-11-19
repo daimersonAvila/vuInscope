@@ -146,7 +146,7 @@
   function renderDrop() {
     $('#drop-title').textContent = file ? file.name : t('Drop a project archive here, or choose a file');
     $('#drop-sub').textContent = file ? t('{size} MB — ready to analyze', { size: (file.size / 1048576).toFixed(2) })
-      : t('.zip, .tar, .tar.gz, .tar.bz2 or .tar.xz — up to 25 MB');
+      : t('.zip, .tar, .tar.gz, .tar.bz2 or .tar.xz (or a single source file) — up to 25 MB');
   }
   function pick(f) {
     if (!f) return;
@@ -162,13 +162,16 @@
   $('#scan-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!file) return;
+    const useAi = $('#use-ai').checked;
     const fd = new FormData(); fd.append('archive', file, file.name);
-    $('#btn-scan').disabled = true; $('#results').hidden = true; busy('Unpacking and scanning…');
+    fd.append('use_ai', useAi ? '1' : '0'); fd.append('lang', VS.lang);
+    $('#btn-scan').disabled = true; $('#results').hidden = true;
+    busy(useAi ? 'Analyzing with AI… this can take up to a minute.' : 'Unpacking and scanning…');
     try {
       scan = await api('/api/scan', { method: 'POST', form: fd });
       await loadRuleText();
       renderResults();
-      if ($('#use-ai').checked && scan.findings.length) getPlan();
+      if (useAi && scan.findings.length) getPlan();
     } catch (ex) {
       notice(ex.message, true);
     } finally { busy(''); $('#btn-scan').disabled = false; }
@@ -199,6 +202,7 @@
     else path.append(h('li', {}, t('No route found')));
     renderMatrix($('#risk-matrix'), risk.states.map((s) => t(s.label)), risk.matrix);
 
+    renderAiStatus(scan.ai_review);
     if (fresh) { $('#ai-plan').hidden = true; sevFilter = 'all'; $('#text-filter').value = ''; }
     const chips = $('#sev-filter'); chips.replaceChildren();
     ['all', 'critical', 'high', 'medium', 'low'].forEach((s) => chips.append(h('button', {
@@ -207,6 +211,24 @@
     }, s === 'all' ? t('All') : t(SEV_LABEL[s]))));
     renderFindings();
     if (fresh) $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderAiStatus(r) {
+    const el = $('#ai-status');
+    if (!r || r.status === 'not_requested') { el.hidden = true; return; }
+    const msg = {
+      ok: r.added ? t('AI reviewed {files} files and added {n} findings.', { files: r.files_reviewed, n: r.added })
+        : t('AI reviewed {files} files and found no additional issues.', { files: r.files_reviewed }),
+      partial: t('AI reviewed only part of the code ({ok} of {total} sections answered) and added {n} findings.', { ok: r.chunks_ok, total: r.chunks, n: r.added }),
+      unavailable: t('The AI service did not answer, so only the built-in rules ran. Try again in a moment.'),
+      invalid_response: t('The AI answered in an unexpected format, so no AI findings were added.'),
+      disabled: t('AI is disabled on this server, so only the built-in rules ran.'),
+      nothing_to_review: t('No source files were found to send to the AI.'),
+    }[r.status] || '';
+    const bad = ['unavailable', 'invalid_response', 'disabled', 'nothing_to_review'].includes(r.status);
+    el.textContent = `${t('AI code review')}: ${msg}` + (r.truncated ? ` ${t('Only the first {n} sections were reviewed.', { n: r.chunks })}` : '');
+    el.classList.toggle('is-error', bad);
+    el.hidden = false;
   }
 
   function renderMatrix(table, labels, m) {
@@ -227,11 +249,16 @@
       && (!q || `${f.path} ${f.rule_id} ${ruleText(f).title} ${f.cwe}`.toLowerCase().includes(q)));
     $('#findings-count').textContent = t('({n} of {m})', { n: list.length, m: scan.findings.length });
     const ul = $('#findings'); ul.replaceChildren();
-    if (!list.length) ul.append(h('li', { class: 'muted' }, t(scan.findings.length ? 'No findings match this filter.' : 'No issues found by the built-in rules. This does not prove the code is safe.')));
+    if (!list.length) ul.append(h('li', { class: 'muted' }, t(scan.findings.length ? 'No findings match this filter.' : (scan.ai_review && scan.ai_review.status === 'ok' ? 'No issues found by the rules or the AI. This does not prove the code is safe.' : 'No issues found by the built-in rules. This does not prove the code is safe.'))));
     list.slice(0, 300).forEach((f) => ul.append(findingItem(f)));
     if (list.length > 300) ul.append(h('li', { class: 'muted' }, t('Showing the first 300 of {n}. Narrow the filter to see the rest.', { n: list.length })));
   }
   $('#text-filter').addEventListener('input', () => scan && renderFindings());
+
+  // AI findings carry their own title / severity / fix, so the server needs them back on every follow-up call.
+  const ruleRef = (f) => (f.rule_id === 'AI001'
+    ? { rule_id: f.rule_id, path: f.path, line: f.line, title: f.title, cwe: f.cwe, severity: f.severity, category: f.category, fix: f.fix, example: f.example }
+    : { rule_id: f.rule_id, path: f.path, line: f.line });
 
   function findingItem(f) {
     const aiOut = h('div', { class: 'aibox', hidden: true });
@@ -241,6 +268,7 @@
       h('span', { class: c.hit ? 'hit' : '' }, h('span', { class: 'ln' }, c.n), h('span', { class: 'src' }, c.text + '\n'))))) : null;
     const body = h('div', { class: 'finding-body' },
       code,
+      f.explanation ? h('div', { class: 'howfix' }, h('h4', {}, t('Why it matters')), h('p', {}, f.explanation)) : null,
       h('div', { class: 'howfix' }, h('h4', {}, t('How to fix')), h('p', {}, rt.fix), f.example ? h('pre', {}, h('code', {}, f.example)) : null),
       h('div', { class: 'row' },
         h('button', { class: 'btn btn-small', type: 'button', onclick: (e) => explain(f, aiOut, e.currentTarget) }, t('Explain with AI')),
@@ -248,13 +276,13 @@
         h('button', { class: 'btn btn-small btn-ghost', type: 'button', onclick: () => register([f]) }, t('Add to registry'))),
       aiOut);
     return h('li', {}, h('details', { class: 'finding' },
-      h('summary', {}, pill(f.severity), h('span', { class: 'ftitle' }, `${rt.title} `, h('span', { class: 'cwe' }, f.cwe)), h('span', { class: 'floc' }, where)), body));
+      h('summary', {}, pill(f.severity), f.source === 'ai' ? h('span', { class: 'pill' }, t('AI review')) : null, h('span', { class: 'ftitle' }, `${rt.title} `, h('span', { class: 'cwe' }, f.cwe)), h('span', { class: 'floc' }, where)), body));
   }
 
   async function explain(f, out, btn) {
     btn.disabled = true; btn.textContent = t('Asking…');
     try {
-      const r = await api('/api/ai/explain', { method: 'POST', json: { lang: VS.lang, finding: { rule_id: f.rule_id, path: f.path, line: f.line, context: f.context } } });
+      const r = await api('/api/ai/explain', { method: 'POST', json: { lang: VS.lang, finding: { ...ruleRef(f), context: f.context } } });
       out.replaceChildren(h('div', { class: 'aibox-head' }, h('h2', {}, t('Explanation')), h('span', { class: 'pill' }, r.fallback ? t('Built-in guidance') : t('AI: {engine}', { engine: r.engine }))),
         r.fallback ? h('p', { class: 'fine' }, t('The public AI service did not answer, so this is the built-in guidance.')) : null,
         h('pre', { class: 'prose' }, r.text));
@@ -264,7 +292,7 @@
   }
 
   async function openRulePlaybook(f) {
-    try { showPlaybook(await api('/api/playbook', { method: 'POST', json: { rule_id: f.rule_id, lang: VS.lang } })); }
+    try { showPlaybook(await api('/api/playbook', { method: 'POST', json: { ...ruleRef(f), lang: VS.lang } })); }
     catch (ex) { notice(ex.message, true); }
   }
 
@@ -274,7 +302,7 @@
     try {
       const r = await api('/api/ai/summary', { method: 'POST', json: {
         lang: VS.lang, by_severity: scan.stats.by_severity, risk_score: scan.risk.score,
-        top: scan.findings.slice(0, 15).map((f) => ({ rule_id: f.rule_id, path: f.path, line: f.line })) } });
+        top: scan.findings.slice(0, 15).map((f) => ({ ...ruleRef(f), title: f.title })) } });
       $('#ai-plan-text').textContent = r.text;
       $('#ai-plan-engine').textContent = r.fallback ? t('Built-in guidance') : t('AI: {engine}', { engine: r.engine });
       $('#ai-plan').hidden = false;
@@ -288,7 +316,7 @@
     if (!(await requireLogin())) return;
     try {
       const r = await api('/api/vulnerabilidades/bulk', { method: 'POST', auth: true,
-        json: { findings: items.map((f) => ({ rule_id: f.rule_id, path: f.path, line: f.line })) } });
+        json: { findings: items.map(ruleRef) } });
       if (r.created === 0 && r.duplicates > 0) notice(t(r.duplicates === 1 ? 'Nothing added: an identical record is already in the registry.' : 'Nothing added: {n} identical records are already in the registry.', { n: r.duplicates }), true);
       else notice(t('Added {n} to the registry.', { n: r.created }) + (r.duplicates ? ' ' + t(r.duplicates === 1 ? 'Skipped 1 identical duplicate.' : 'Skipped {n} identical duplicates.', { n: r.duplicates }) : ''));
     } catch (ex) { notice(ex.message, true); }

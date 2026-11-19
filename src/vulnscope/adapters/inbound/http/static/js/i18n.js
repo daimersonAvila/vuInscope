@@ -14,14 +14,8 @@
   root.lang = lang;
 
   const ES = {
-        "Quality Gate: Passed": "Quality Gate: Aprobado",
-    "Quality Gate: Passed with warnings": "Quality Gate: Aprobado con advertencias",
-    "Quality Gate: Failed": "Quality Gate: Reprobado",
-    "{n} {sev} (limit {max})": "{n} {sev} (límite {max})",
-    "No condition exceeded the limits.": "Ninguna condición superó los límites.",
-    "Fails with any critical or more than 2 high findings. Warns with any high or more than 5 medium.": "Reprueba con cualquier hallazgo crítico o más de 2 altos. Advierte con cualquier alto o más de 5 medios.",
     "37 checks cover hard-coded secrets, SQL and command injection, unsafe deserialisation, weak cryptography, XSS sinks, debug flags and risky cloud or container settings. Every finding points to a file and line.": "37 controles cubren secretos escritos en el código, inyección SQL y de comandos, deserialización insegura, criptografía débil, puntos de XSS, banderas de debug y configuraciones riesgosas de nube o contenedores. Cada hallazgo señala un archivo y una línea.",
-    //"A Markov chain learns how vulnerabilities move between statuses from the registry history and predicts what happens next.": "Una cadena de Markov aprende cómo cambian de estado las vulnerabilidades a partir del historial del registro y predice qué sigue.",
+    "A Markov chain learns how vulnerabilities move between statuses from the registry history and predicts what happens next.": "Una cadena de Markov aprende cómo cambian de estado las vulnerabilidades a partir del historial del registro y predice qué sigue.",
     "A Markov chain turns your findings into an attack path — from first contact to full compromise — and gives a 0–100 risk score with the most probable route highlighted.": "Una cadena de Markov convierte tus hallazgos en una ruta de ataque —del primer contacto al compromiso total— y da un puntaje de riesgo de 0 a 100 con la ruta más probable resaltada.",
     "AI features send a few redacted lines around each finding to a public AI service. Secrets are masked first. Leave this off for private code.": "Las funciones de IA envían unas pocas líneas enmascaradas alrededor de cada hallazgo a un servicio público de IA. Los secretos se ocultan antes. Déjalo desactivado para código privado.",
     "Accepts .zip, .tar, .tar.gz, .tar.bz2 and .tar.xz up to 25 MB. No account needed to scan.": "Acepta .zip, .tar, .tar.gz, .tar.bz2 y .tar.xz de hasta 25 MB. No necesitas cuenta para escanear.",
@@ -84,7 +78,7 @@
     "Password": "Contraseña",
     "Primary": "Principal",
     "Rate limits on every endpoint and a lockout after repeated failed logins": "Límites de tasa en cada endpoint y bloqueo tras varios inicios de sesión fallidos",
-    //"Register findings in the vulnerability log. A second Markov chain learns from your status changes and forecasts how many steps remain until each one is closed. Exact duplicates are refused with a clear notice.": "Registra los hallazgos en el log de vulnerabilidades. Una segunda cadena de Markov aprende de tus cambios de estado y pronostica cuántos pasos faltan para cerrar cada una. Los duplicados exactos se rechazan con un aviso claro.",
+    "Register findings in the vulnerability log. A second Markov chain learns from your status changes and forecasts how many steps remain until each one is closed. Exact duplicates are refused with a clear notice.": "Registra los hallazgos en el log de vulnerabilidades. Una segunda cadena de Markov aprende de tus cambios de estado y pronostica cuántos pasos faltan para cerrar cada una. Los duplicados exactos se rechazan con un aviso claro.",
     "Registry": "Registro",
     "Remediation plan": "Plan de remediación",
     "Rules read each text file line by line. Secrets are masked the moment they are found, so they never appear in results or reach the AI.": "Las reglas leen cada archivo de texto línea por línea. Los secretos se enmascaran al encontrarlos, así que nunca aparecen en los resultados ni llegan a la IA.",

@@ -11,4 +11,4 @@ VOLUME /data
 EXPOSE 8000
 HEALTHCHECK CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/healthz')" || exit 1
 # One worker + threads keeps the in-memory rate limiter / lockout consistent. See README to scale out.
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "8", "--timeout", "60", "--limit-request-line", "4094", "wsgi:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "8", "--timeout", "120", "--limit-request-line", "4094", "wsgi:app"]

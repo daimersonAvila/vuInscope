@@ -2,18 +2,27 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional
 
 from .redaction import redact
-from .rules import FILE_RULES, RULES, find_rule_meta
+from .rules import CPP, FILE_RULES, RULES, find_rule_meta
 
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 MAX_FINDINGS = 1500
 MAX_PER_RULE_PER_FILE = 15
 MAX_LINE_LEN = 1000
 CONTEXT = 2
-COMMENT_PREFIXES = ("#", "//", "*", "/*", "<!--", "--")
+COMMENT_PREFIXES = ("#", "//", "/*", "<!--", "--")
+C_COMMENT_PREFIXES = ("//", "/*")  # in C/C++ '#' is the preprocessor and '--' / '*' start real code (--i; *p = x;)
+_BLOCK_COMMENT_CONT = re.compile(r"\*(?:\s|/|$)")  # ' * text' inside a /* ... */ block
+
+
+def is_comment_line(stripped: str, ext: str) -> bool:
+    if ext in CPP:
+        return stripped.startswith(C_COMMENT_PREFIXES) or bool(_BLOCK_COMMENT_CONT.match(stripped))
+    return stripped.startswith(COMMENT_PREFIXES) or bool(_BLOCK_COMMENT_CONT.match(stripped))
 
 
 @dataclass(frozen=True)
@@ -71,7 +80,7 @@ def scan(contents: ArchiveContents) -> dict:
                     break
                 line = raw[:MAX_LINE_LEN]
                 stripped = line.lstrip()
-                if rule.category != "secrets" and stripped.startswith(COMMENT_PREFIXES):
+                if rule.category != "secrets" and is_comment_line(stripped, ext):
                     continue
                 m = rule.pattern.search(line)
                 if not m or (rule.validator and not rule.validator(m)):
@@ -86,6 +95,12 @@ def scan(contents: ArchiveContents) -> dict:
         if heavy:
             add("FIL004", ", ".join(heavy), 0, [])
 
+    return finalize({"findings": findings}, files_total=len(contents.files), files_scanned=scanned, contents=contents)
+
+
+def finalize(result: dict, files_total: int, files_scanned: int, contents: ArchiveContents) -> dict:
+    """Sort findings, give them stable ids and compute the statistics. Also used after AI findings are merged in."""
+    findings = result["findings"]
     findings.sort(key=lambda x: (SEVERITY_ORDER[x["severity"]], x["path"], x["line"]))
     for i, f in enumerate(findings, 1):
         f["id"] = f"F-{i:03d}"
@@ -94,7 +109,7 @@ def scan(contents: ArchiveContents) -> dict:
         counts[f["severity"]] += 1
     return {
         "findings": findings,
-        "stats": {"files_total": len(contents.files), "files_scanned": scanned,
+        "stats": {"files_total": files_total, "files_scanned": files_scanned,
                   "ignored_dirs": sorted(set(contents.ignored_dirs)), "skipped_unsafe": contents.skipped_unsafe,
                   "skipped_large": contents.skipped_large, "truncated": contents.truncated,
                   "by_severity": counts, "total": len(findings)},

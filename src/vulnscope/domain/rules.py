@@ -10,8 +10,9 @@ JS = frozenset({".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue"})
 PHP = frozenset({".php"})
 JAVA = frozenset({".java", ".kt", ".scala"})
 TEMPLATES = frozenset({".html", ".htm", ".jinja", ".jinja2", ".j2", ".vue", ".jsx", ".tsx", ".js", ".ts", ".py"})
+CPP = frozenset({".c", ".h", ".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"})
 INFRA = frozenset({".tf", ".json", ".yml", ".yaml", ".sh", ".bash", ".dockerfile", ".toml", ".cfg", ".ini"})
-CODE = PY | JS | PHP | JAVA | frozenset({".go", ".rb", ".rs", ".cs", ".c", ".cpp", ".h"})
+CODE = PY | JS | PHP | JAVA | CPP | frozenset({".go", ".rb", ".rs", ".cs"})
 
 _PLACEHOLDER = re.compile(r"(?i)^(?:\$\{?|<|%\(|\{\{|your[_-]|xxx|changeme|change-me|example|placeholder|\*+$|\.\.\.|none$|null$|true$|false$|test$)")
 
@@ -119,6 +120,55 @@ RULES: Tuple[Rule, ...] = (
     _r("CFG006", "Service bound to all interfaces", "CWE-668", "low", "exposure",
        r"""\bhost\s*=\s*['"]0\.0\.0\.0['"]""",
        "Bind to 127.0.0.1 unless the service must be reachable from outside, and put a reverse proxy in front.", exts=PY),
+    # ---- C / C++ memory safety and unsafe APIs ------------------------
+    _r("CPP001", "gets(): unbounded read into a buffer", "CWE-242", "critical", "execution",
+       r"\bgets\s*\(",
+       "gets() cannot limit how much it reads and was removed from the C standard. Use fgets(buf, sizeof buf, stdin) and strip the trailing newline.",
+       "if (fgets(buf, sizeof buf, stdin) == NULL) return 1;\nbuf[strcspn(buf, \"\\n\")] = '\\0';", exts=CPP),
+    _r("CPP002", "Unbounded string copy (strcpy / strcat)", "CWE-120", "high", "execution",
+       r"\b(?:strcpy|strcat|stpcpy|wcscpy|wcscat)\s*\(",
+       "Use a bounded copy that checks the destination size (snprintf, strlcpy, or memcpy after comparing lengths) and always NUL-terminate.",
+       "snprintf(dst, sizeof dst, \"%s\", src);  /* truncates instead of overflowing */", exts=CPP),
+    _r("CPP003", "sprintf / vsprintf without a size limit", "CWE-120", "high", "execution",
+       r"\b(?:sprintf|vsprintf)\s*\(",
+       "Replace with snprintf / vsnprintf and pass sizeof of the destination buffer.",
+       "snprintf(buf, sizeof buf, \"%s-%s\", a, b);", exts=CPP),
+    _r("CPP004", "scanf-family %s conversion without a width", "CWE-120", "high", "execution",
+       r"\b(?:scanf|fscanf|sscanf)\s*\([^;]*?%s",
+       "Give every %s a maximum width one smaller than the buffer, or read with fgets and parse afterwards.",
+       "char name[32];\nscanf(\"%31s\", name);", exts=CPP),
+    _r("CPP005", "Format string controlled by data (printf family)", "CWE-134", "high", "injection",
+       r"""\b(?:printf|vprintf|syslog)\s*\(\s*(?!["_]|L["']|N_\()[A-Za-z_]\w*(?:\[[^\]]*\])?\s*\)|\bfprintf\s*\(\s*\w+\s*,\s*(?!["_]|L["'])[A-Za-z_]\w*(?:\[[^\]]*\])?\s*\)""",
+       "Never pass external data as the format string. Use a constant format and pass the data as an argument.",
+       "printf(\"%s\", user_input);   /* not printf(user_input) */", exts=CPP),
+    _r("CPP006", "Shell command execution (system / popen)", "CWE-78", "high", "injection",
+       r"(?<![\w.>])(?:system|popen|_popen|_wsystem)\s*\(",
+       "Avoid the shell. Call execv/posix_spawn with an argument array, and validate any external value against an allow-list.",
+       "char *args[] = {\"/bin/ls\", \"-l\", safe_dir, NULL};\nexecv(args[0], args);", exts=CPP),
+    _r("CPP007", "Allocation size computed by multiplication (integer overflow)", "CWE-190", "medium", "execution",
+       r"\b(?:malloc|realloc)\s*\(\s*(?:\w+|\w+\([^)]*\))\s*\*\s*(?:\w+|sizeof)|\b(?:malloc|realloc)\s*\(\s*sizeof\s*\([^)]*\)\s*\*\s*\w",
+       "Use calloc(n, size), which checks the multiplication, or verify n <= SIZE_MAX / size before allocating.",
+       "int *a = calloc(n, sizeof *a);\nif (!a) return -1;", exts=CPP),
+    _r("CPP008", "alloca(): unbounded stack allocation", "CWE-770", "medium", "execution",
+       r"\balloca\s*\(",
+       "Use a fixed-size buffer or heap allocation with an explicit upper bound on the requested size.", exts=CPP),
+    _r("CPP009", "Predictable temporary file name (tmpnam / mktemp)", "CWE-377", "medium", "exposure",
+       r"\b(?:tmpnam|tempnam|mktemp)\s*\(",
+       "Use mkstemp(), which creates and opens the file atomically with safe permissions.",
+       "char path[] = \"/tmp/appXXXXXX\";\nint fd = mkstemp(path);", exts=CPP),
+    _r("CPP010", "File opened from command-line or environment input", "CWE-22", "medium", "injection",
+       r"\b(?:fopen|open|freopen)\s*\(\s*(?:argv\s*\[|getenv\s*\()",
+       "Canonicalise the path (realpath) and verify it stays inside an allowed base directory before opening it.", exts=CPP),
+    _r("CPP011", "Weak pseudo-random generator (rand / srand(time))", "CWE-338", "low", "exposure",
+       r"\b(?:rand|random)\s*\(\s*\)|\bsrand\s*\(\s*time\s*\(",
+       "Do not use rand() for tokens, keys or session IDs. Read from getrandom(), /dev/urandom or arc4random_buf().", exts=CPP),
+    _r("CPP012", "atoi / atol / atof perform no error checking", "CWE-20", "low", "exposure",
+       r"\b(?:atoi|atol|atoll|atof)\s*\(",
+       "Use strtol / strtoul / strtod and check errno and the end pointer.",
+       "char *end; errno = 0;\nlong v = strtol(s, &end, 10);\nif (errno || end == s || *end) return -1;", exts=CPP),
+    _r("CPP013", "World-writable permissions set in code (chmod 0777)", "CWE-732", "medium", "exposure",
+       r"\b(?:chmod|fchmod)\s*\([^;]*\b0?777\b",
+       "Grant the minimum permissions (e.g. 0640 for files, 0750 for programs).", exts=CPP),
     # ---- crypto --------------------------------------------------------
     _r("CRY001", "Weak hash algorithm (MD5 / SHA-1)", "CWE-327", "medium", "exposure",
        r"""hashlib\.(?:md5|sha1)\(|MessageDigest\.getInstance\(\s*"(?:MD5|SHA-?1)"|createHash\(\s*['"](?:md5|sha1)['"]""",
@@ -205,6 +255,7 @@ FILE_RULES = (
      "Do not commit databases: they may contain user data. Generate them at deploy time or via seed scripts."),
 )
 
+AI_RULE_ID = "AI001"  # findings produced by the AI reviewer (title / severity / fix come from the model)
 RULES_BY_ID = {r.id: r for r in RULES}
 FILE_RULES_BY_ID = {r[0]: r for r in FILE_RULES}
 
@@ -217,6 +268,9 @@ def find_rule_meta(rule_id: str):
     f = FILE_RULES_BY_ID.get(rule_id)
     if f:
         return f[1], f[2], f[3], f[4], f[6], ""
+    if rule_id == AI_RULE_ID:
+        return ("Issue found by AI code review", "CWE-710", "medium", "exposure",
+                "See the AI explanation for the concrete fix in this code.", "")
     if rule_id == "FIL004":
         return ("Virtual environment / dependency folder included", "CWE-1104", "low", "exposure",
                 "Exclude virtualenvs and vendored dependencies from the repository (.gitignore) and install them from requirements.txt.", "")

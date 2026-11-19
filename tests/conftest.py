@@ -16,7 +16,7 @@ class FakeAI:
     def __init__(self, fail=False):
         self.fail, self.calls = fail, []
 
-    def complete(self, system, user):
+    def complete(self, system, user, max_tokens=900):
         self.calls.append((system, user))
         if self.fail:
             raise AIUnavailableError("down")

@@ -13,7 +13,8 @@ from ..domain.markov import MarkovChain
 from ..domain.models import DEFAULT_CVSS, SCAN_TO_REGISTRY_SEVERITY, STATES, Vulnerability
 from ..domain.playbooks import build_playbook
 from ..domain.redaction import redact
-from ..domain.rules import find_rule_meta
+from ..domain.rules import AI_RULE_ID, find_rule_meta
+from .ai_review import CodeReviewer, meta_from_payload
 from .ports import (AIClient, ArchiveReader, Authenticator, StateHistoryRepository, TokenService,
                     VulnerabilityRepository)
 
@@ -60,7 +61,7 @@ class RegistryService:
             if meta is None:
                 invalid += 1
                 continue
-            title, cwe, sev, *_ = meta
+            title, cwe, sev, *_ = meta_from_payload(f) if f.get("rule_id") == AI_RULE_ID else meta
             location = str(f.get("path", ""))[:120] + (f":{int(f['line'])}" if int(f.get("line") or 0) else "")
             payload = {"titulo": f"{title} — {location}"[:200], "cve_codigo": cwe,
                        "severidad": SCAN_TO_REGISTRY_SEVERITY[sev], "estado": "abierta",
@@ -83,21 +84,33 @@ class RegistryService:
 
 # ---------------------------------------------------------------- scanning
 class ScanService:
-    def __init__(self, reader: ArchiveReader):
-        self.reader = reader
+    def __init__(self, reader: ArchiveReader, reviewer: Optional[CodeReviewer] = None):
+        self.reader, self.reviewer = reader, reviewer
 
-    def run(self, data: bytes) -> dict:
-        contents = self.reader.read(data)  # raises ArchiveError
+    def run(self, data: bytes, filename: Optional[str] = None, use_ai: bool = False, lang: str = "en") -> dict:
+        contents = self.reader.read(data, filename)  # raises ArchiveError
         result = scanner.scan(contents)
+        if use_ai and self.reviewer is not None:
+            review = self.reviewer.review(contents, result["findings"], norm_lang(lang))
+            if review["findings"]:
+                st = result["stats"]
+                result = scanner.finalize({"findings": result["findings"] + review["findings"]},
+                                          st["files_total"], st["files_scanned"], contents)
+            result["ai_review"] = review["info"]
+        else:
+            result["ai_review"] = {"status": "disabled" if use_ai else "not_requested", "engine": None, "chunks": 0,
+                                   "chunks_ok": 0, "files_reviewed": 0, "truncated": False, "added": 0}
         result["risk"] = risk_model.build_risk_model(result["findings"])
         result["gate"] = evaluate_gate(result["stats"]["by_severity"])
         return result
 
     @staticmethod
-    def playbook_for_rule(rule_id: str, lang: str = "en") -> dict:
+    def playbook_for_rule(rule_id: str, lang: str = "en", overrides: Optional[dict] = None) -> dict:
         meta = find_rule_meta(rule_id)
         if meta is None:
             raise NotFoundError("Unknown rule")
+        if rule_id == AI_RULE_ID:
+            meta = meta_from_payload(overrides or {})
         title, cwe, sev, cat, *_ = meta
         reg_sev = SCAN_TO_REGISTRY_SEVERITY[sev]
         pb = build_playbook(reg_sev, cwe, cat, "abierta", lang)
@@ -138,6 +151,8 @@ class AIAdvisor:
         meta = find_rule_meta(str(finding.get("rule_id", "")))
         if meta is None:
             raise NotFoundError("Unknown rule")
+        if finding.get("rule_id") == AI_RULE_ID:
+            meta = meta_from_payload(finding)
         title, cwe, sev, cat, fix, example = meta
         ctx = finding.get("context") if isinstance(finding.get("context"), list) else []
         code = "\n".join(f"{int(c.get('n', 0))}: {redact(str(c.get('text', ''))[:200])}" for c in ctx[:7] if isinstance(c, dict))

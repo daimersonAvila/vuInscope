@@ -7,7 +7,7 @@ from .adapters.outbound.ai_http import OpenAICompatibleClient
 from .adapters.outbound.archive_reader import ArchiveLimits, SafeArchiveReader
 from .adapters.outbound.auth_adapters import ConfigAuthenticator, JwtTokenService
 from .adapters.outbound.sqlite_repo import SqliteStore
-from .application.use_cases import AIAdvisor, AuthService, RegistryService, ScanService ##LifecycleService
+from .application.use_cases import AIAdvisor, AuthService, LifecycleService, RegistryService, ScanService
 from .config import Settings
 
 
@@ -17,7 +17,7 @@ class Container:
     registry: RegistryService
     scans: ScanService
     advisor: AIAdvisor
-    ##lifecycle: LifecycleService
+    lifecycle: LifecycleService
     auth: AuthService
 
 
@@ -32,7 +32,7 @@ def build_container(settings: Settings, ai_client=None) -> Container:
         registry=RegistryService(store, store),
         scans=ScanService(SafeArchiveReader(ArchiveLimits(max_total_bytes=settings.max_upload_mb * 4_000_000))),
         advisor=AIAdvisor(primary, None),
-        ##lifecycle=LifecycleService(store),
+        lifecycle=LifecycleService(store),
         auth=AuthService(ConfigAuthenticator(settings.admin_username, settings.admin_password_hash),
                          JwtTokenService(settings.secret_key, settings.token_ttl)),
     )
