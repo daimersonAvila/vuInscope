@@ -18,11 +18,11 @@ class OpenAICompatibleClient:
     def __init__(self, base_url: str, model: str, api_key: str = "", timeout: int = 45, name: str = "public-ai"):
         self.url, self.model, self.api_key, self.timeout, self.name = base_url, model, api_key, timeout, name
 
-    def complete(self, system: str, user: str) -> str:
+    def complete(self, system: str, user: str, max_tokens: int = 900) -> str:
         headers = {"Content-Type": "application/json", "User-Agent": "vulnscope/1.0"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        body = {"model": self.model, "temperature": 0.2, "max_tokens": 900, "private": True,
+        body = {"model": self.model, "temperature": 0.2, "max_tokens": max(100, min(int(max_tokens), 4000)), "private": True,
                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
         try:
             r = requests.post(self.url, json=body, headers=headers, timeout=self.timeout, allow_redirects=False)

@@ -21,7 +21,7 @@ from ...domain.scanner import ArchiveContents, SourceFile
 IGNORED_DIRS = {".git", ".svn", ".hg", ".venv", "venv", "env", "node_modules", "__pycache__", ".idea", ".vscode",
                 "site-packages", "dist", "build", ".pytest_cache", ".mypy_cache", "vendor", ".tox", ".next"}
 TEXT_EXTS = {".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue", ".php", ".java", ".kt", ".scala", ".go",
-             ".rb", ".rs", ".cs", ".c", ".cpp", ".h", ".html", ".htm", ".jinja", ".jinja2", ".j2", ".tf", ".json",
+             ".rb", ".rs", ".cs", ".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx", ".html", ".htm", ".jinja", ".jinja2", ".j2", ".tf", ".json",
              ".yml", ".yaml", ".sh", ".bash", ".toml", ".cfg", ".ini", ".conf", ".properties", ".xml", ".sql",
              ".md", ".txt", ".rst", ".env", ".pem", ".key", ".gradle", ".dockerfile"}
 TEXT_NAMES = {"dockerfile", "makefile", "requirements.txt", "procfile"}
@@ -74,7 +74,7 @@ class SafeArchiveReader:
     def __init__(self, limits: Optional[ArchiveLimits] = None):
         self.limits = limits or ArchiveLimits()
 
-    def read(self, data: bytes) -> ArchiveContents:
+    def read(self, data: bytes, filename: Optional[str] = None) -> ArchiveContents:
         if not data:
             raise ArchiveError("The uploaded file is empty.")
         head = data[:8]
@@ -88,7 +88,21 @@ class SafeArchiveReader:
             return self._read_tar(_bounded_read(lzma.LZMAFile(io.BytesIO(data)), self.limits.max_total_bytes))
         if len(data) > 262 and data[257:262] == b"ustar":
             return self._read_tar(data)
-        raise ArchiveError("Unsupported archive format. Upload a .zip, .tar, .tar.gz, .tar.bz2 or .tar.xz file.")
+        single = self._read_single_file(data, filename)
+        if single is not None:
+            return single
+        raise ArchiveError("Unsupported archive format. Upload a .zip, .tar, .tar.gz, .tar.bz2 or .tar.xz file, "
+                           "or a single source file (.c, .py, .js, ...).")
+
+    def _read_single_file(self, data: bytes, filename: Optional[str]) -> Optional[ArchiveContents]:
+        """A lone source file (e.g. main.c) is analysed as a one-file project."""
+        name = posixpath.basename((filename or "").replace("\\", "/"))
+        path = _clean_path(name)
+        if path is None or not _is_text_candidate(path):
+            return None
+        if len(data) > self.limits.max_file_bytes:
+            return ArchiveContents(files=[SourceFile(path=path, size=len(data), content=None)], skipped_large=1)
+        return ArchiveContents(files=[SourceFile(path=path, size=len(data), content=_decode(data))])
 
     # ------------------------------------------------------------------
     def _walk(self, entries: Iterator[Tuple[str, int, bool, callable]]) -> ArchiveContents:
