@@ -315,6 +315,32 @@
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
 
+    // PDF: opens the print dialog with a print-friendly layout (see @media print in site.css).
+  $('#btn-pdf').addEventListener('click', () => {
+    if (!scan) return;
+    // Overview table (only visible when printing)
+    const MAX_ROWS = 25;
+    const tb = $('#print-table'); tb.replaceChildren();
+    scan.findings.slice(0, MAX_ROWS).forEach((f) => tb.append(h('tr', {},
+      h('td', {}, pill(f.severity)),
+      h('td', {}, ruleText(f).title, ' ', h('span', { class: 'cwe' }, f.cwe)),
+      h('td', { class: 'loc' }, f.line ? `${f.path}:${f.line}` : f.path))));
+    if (!scan.findings.length) tb.append(h('tr', {}, h('td', { colspan: 3, class: 'muted' }, t('No issues found by the built-in rules. This does not prove the code is safe.'))));
+    if (scan.findings.length > MAX_ROWS) tb.append(h('tr', {}, h('td', { colspan: 3, class: 'muted' }, t('… and {n} more. See the detailed list below.', { n: scan.findings.length - MAX_ROWS }))));
+    // Open every finding so the PDF includes code and fix
+    const opened = [];
+    document.querySelectorAll('#findings details.finding').forEach((d) => { if (!d.open) { d.open = true; opened.push(d); } });
+    const oldTitle = document.title;
+    const stamp = new Date();
+    document.title = `VulnScope-${stamp.toISOString().slice(0, 10)}`; // browsers suggest this as the PDF file name
+    $('#print-meta').textContent = `${file ? file.name : ''} · ${stamp.toLocaleString(VS.lang)}`;
+    window.addEventListener('afterprint', () => {
+      opened.forEach((d) => { d.open = false; });
+      document.title = oldTitle;
+    }, { once: true });
+    window.print();
+  });
+
   // ------------------------------------------------------------------ registry
   async function loadRegistry() {
     let rows;

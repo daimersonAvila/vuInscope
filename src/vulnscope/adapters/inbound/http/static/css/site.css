@@ -359,3 +359,84 @@ dialog form { display: grid; gap: .9rem; }
   html { scroll-behavior: auto; }
   .listing mark, .meter span, .spinner { animation: none; transition: none; }
 }
+/* ==========================================================================
+   12. IMPRESIÓN / PDF
+   Se usa al pulsar "Descargar reporte (PDF)": el navegador imprime la página
+   con este diseño y el usuario elige "Guardar como PDF".
+   ========================================================================== */
+.print-only { display: none; }
+
+@media print {
+  /* Siempre colores claros sobre papel blanco, sin importar el tema elegido */
+  :root, :root[data-theme] {
+    color-scheme: light; --paper: #fff; --paper-2: #f1f1f1; --ink: #0f2230; --muted: #4d5a63; --rule: #cfd6dc;
+    --accent: #2a3bd6; --accent-ink: #fff; --hl: #f4e04d; --hl-ink: #0f2230; --code-bg: #f6f7f8;
+    --crit: #b3123f; --high: #b8500a; --med: #7d5f00; --low: #2a6a55;
+  }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* imprime fondos sin marcar "Gráficos de fondo" */
+  html, body { background: #fff !important; }
+  body { font-size: 10.5pt; line-height: 1.5; }
+
+  /* Pie de página con número de página (navegadores recientes) */
+  @page {
+    margin: 18mm 16mm 20mm;
+    @bottom-left { content: "VulnScope · Security report"; font: 8.5pt system-ui, sans-serif; color: #666; }
+    @bottom-right { content: counter(page) " / " counter(pages); font: 8.5pt system-ui, sans-serif; color: #666; }
+  }
+
+  /* Ocultar lo que no es parte del informe */
+  .topbar, .skip, #notice, .tabs, #view-registry, .panel-intro, #scan-form, #busy,
+  .list-tools, #results .row, .finding-body .row, .matrix-wrap, dialog, .foot { display: none !important; }
+  .wrap { max-width: none; padding: 0; }
+  .print-only { display: block; }
+
+  /* Encabezado del informe */
+  .print-header { display: flex !important; align-items: center; gap: 14px; padding-bottom: 12px; border-bottom: 4px solid var(--hl); }
+  .print-header h1 { font-size: 1.9rem; margin: 0; }
+  .print-meta { margin: .15rem 0 0; color: var(--muted); font-size: .95rem; }
+  .print-disclaimer { margin: .6rem 0 1.2rem; font-size: .85rem; color: var(--muted); font-style: italic; }
+
+  /* Página 1: veredicto y resumen, mantenidos en dos columnas */
+  .gate { margin-top: 0; border: 1px solid var(--rule); border-left-width: 10px; }
+  .gate h2 { font-size: 1.5rem; }
+  .summary { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) !important; margin-top: 1.2rem; }
+  .counts { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .count b { font-size: 1.7rem; }
+  .risk-score { font-size: 2.6rem; }
+  .block-sm { margin: 1.2rem 0; }
+  .path li { font-size: .85rem; }
+
+  /* Página 2: tabla resumen */
+  .print-overview { break-before: page; }
+  .print-overview h2 { border-bottom: 2px solid var(--ink); padding-bottom: .3rem; }
+  .overview { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  .overview th { background: var(--paper-2); border-bottom: 2px solid var(--ink); }
+  .overview th, .overview td { padding: 5px 8px; border-bottom: 1px solid var(--rule); }
+  .overview tr { break-inside: avoid; }
+  .overview .loc { font: 8.5pt var(--mono); overflow-wrap: anywhere; }
+
+  /* Páginas siguientes: hallazgos como tarjetas con color según severidad */
+  .list-head { break-before: page; }
+  .findings { border-top: 2px solid var(--ink); }
+  .finding { border: 1px solid var(--rule); border-left: 6px solid #999; border-radius: 4px; margin: 0 0 10px; padding: 0 12px; }
+  .finding:has(.pill-critical) { border-left-color: var(--crit); }
+  .finding:has(.pill-high) { border-left-color: var(--high); }
+  .finding:has(.pill-medium), .finding:has(.pill-moderate) { border-left-color: var(--med); }
+  .finding:has(.pill-low) { border-left-color: var(--low); }
+  .finding > summary { padding: 8px 0 4px; }
+  .finding .ftitle { font-weight: 700; }
+  .finding-body { padding: 2px 0 10px; }
+  .finding-body .listing { background: var(--code-bg); border: 1px solid var(--rule); font-size: 8.5pt; }
+  .listing .hit { background: #fff3b0; }
+  .howfix { background: #f2f9f5; padding: 6px 12px; }
+  .howfix pre { background: #fff; }
+  .aibox { break-inside: avoid; }
+
+  /* Evitar cortes feos y que el código se salga del papel */
+  .gate, .summary, .risk, .finding, .howfix { break-inside: avoid; }
+  .listing, .finding-body .listing { overflow: visible; }
+  .listing code { min-width: 0; }
+  .listing .src, .howfix pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .listing mark { animation: none; }
+  a { color: inherit; text-decoration: none; }
+}
