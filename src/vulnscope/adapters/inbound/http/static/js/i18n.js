@@ -14,6 +14,13 @@
   root.lang = lang;
 
   const ES = {
+        "Download report (PDF)": "Descargar reporte (PDF)",
+    "VulnScope — Security report": "VulnScope — Informe de seguridad",
+        "Findings overview": "Resumen de hallazgos",
+    "Finding": "Hallazgo",
+    "Location": "Ubicación",
+    "… and {n} more. See the detailed list below.": "… y {n} más. Consulta la lista detallada más abajo.",
+    "Automated static analysis based on pattern rules. It can produce false positives and does not replace a manual security audit.": "Análisis estático automatizado basado en reglas de patrones. Puede generar falsos positivos y no sustituye una auditoría de seguridad manual.",
         "Quality Gate: Passed": "Quality Gate: Aprobado",
     "Quality Gate: Passed with warnings": "Quality Gate: Aprobado con advertencias",
     "Quality Gate: Failed": "Quality Gate: Reprobado",
